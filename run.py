@@ -29,7 +29,7 @@ def print_banner():
 
 class BabyNaptime:
     def __init__(self, code_file: str, max_iterations: int = 100, 
-                 llm_model: str = "gpt-3.5-turbo", main_function: str = "main",
+                 llm_model: str = "mistral:latest", main_function: str = "main",
                  keep_history: int = 10):
         """
         Initialize the BabyNaptime vulnerability analyzer.
@@ -37,7 +37,7 @@ class BabyNaptime:
         Args:
             code_file: Path to the source code file to analyze
             max_iterations: Maximum number of analysis iterations (default: 100)
-            llm_model: LLM model to use for analysis (default: gpt-3.5-turbo)
+            llm_model: LLM model to use for analysis (default: mistral:latest)
             main_function: Entry function to begin analysis (default: main)
         """
         self.code_file = code_file
@@ -117,8 +117,8 @@ def main():
     parser.add_argument(
         "--llm-model", "-l",
         help="LLM model to use for analysis",
-        default="o3-mini",
-        choices=["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini", "o3-mini", "o1-preview"]
+        default="mistral:latest",
+        choices=["mistral:latest"]
     )
     
     parser.add_argument(

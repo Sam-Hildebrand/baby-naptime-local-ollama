@@ -1,0 +1,16 @@
+
+    ╔══════════════════════════════════════════════════════════════════════╗
+    ║                                                                      ║
+    ║             Baby Naptime - LLMs for Native Vulnerabilities           ║
+    ║                                                                      ║
+    ║        An open source implementation of Google's Project Naptime     ║
+    ║                                                                      ║
+    ║     [+] Intelligent vulnerability analysis                           ║
+    ║     [+] Automated exploit generation                                 ║
+    ║     [+] Memory corruption detection                                  ║
+    ║     [+] Advanced debugging capabilities                              ║
+    ║                                                                      ║
+    ║               -- Find bugs while the baby's sleeping! --             ║
+    ║                                                                      ║
+    ╚══════════════════════════════════════════════════════════════════════╝
+    

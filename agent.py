@@ -30,14 +30,14 @@ class Agent:
         SYSTEM_PROMPT: System prompt template for the LLM
     """
 
-    def __init__(self, file: str, initial_data: str,is_binary: bool, llm_model: str = "o3-mini", keep_history: int = 10, ):
+    def __init__(self, file: str, initial_data: str,is_binary: bool, llm_model: str = "mistral:latest", keep_history: int = 10, ):
         """
         Initialize the agent.
 
         Args:
             file: Path to source code file to analyze
             initial_data: Initial code/data to analyze
-            llm_model: Name of LLM model to use (default: o3-mini)
+            llm_model: Name of LLM model to use (default: mistral:latest)
             keep_history: Number of conversation items to keep in context (default: 10)
         """
         self.llm = LLM(llm_model)

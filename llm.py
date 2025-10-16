@@ -1,44 +1,35 @@
-import os
-import re
-from typing import Dict, Optional
-from openai import OpenAI
-from constants import OPENAI_API_KEY
+import ollama
 
 class LLM:
-    def __init__(self, model: str = "o3-mini"):
-        """Initialize LLM with optional OpenAI client."""
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+    def __init__(self, model: str = "mistral:latest"):
+        """Initialize LLM with Ollama model."""
         self.model = model
-        self.should_reason = model in ["o3-mini", "o1-preview"] # check if we are using a reasoning model
+        # reasoning not relevant for Ollama, so always False
+        self.should_reason = False
 
-    def action(self, messages, reasoning: str = "medium", temperature: float = 0.0):
-        if not self.should_reason:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                temperature=temperature,
-                messages=messages,
-            )
-        else:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                reasoning_effort=reasoning,
-                messages=messages,
-            )
-        return response.choices[0].message.content
+    def action(self, messages, temperature: float = 0.0, **kwargs):
+        """
+        Ollama doesn't use OpenAI-style 'messages' natively, but we can
+        format them into a single prompt.
+        """
+        # flatten chat history
+        prompt = "\n".join(
+            f"{m['role'].capitalize()}: {m['content']}" for m in messages
+        )
 
-    def prompt(self, prompt: str, reasoning: str = "medium", temperature: float = 0.0):
-        if not self.should_reason:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                temperature=temperature,
-                messages=[{"role": "user", "content": prompt}],
-            )
-        else:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                reasoning_effort=reasoning,
-                messages=[{"role": "user", "content": prompt}],
-            )
-        return response.choices[0].message.content
+        response = ollama.chat(
+            model=self.model,
+            messages=messages,  # Ollama’s Python API *does* accept role/content style
+            options={"temperature": temperature},
+        )
+        return response["message"]["content"]
+
+    def prompt(self, prompt: str, temperature: float = 0.0, **kwargs):
+        response = ollama.chat(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            options={"temperature": temperature},
+        )
+        return response["message"]["content"]
 
     
