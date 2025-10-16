@@ -1,3 +1,4 @@
+# run.py
 import os
 import argparse
 from scripter import ScriptRunner
@@ -29,16 +30,18 @@ def print_banner():
 
 class BabyNaptime:
     def __init__(self, code_file: str, max_iterations: int = 100, 
-                 llm_model: str = "mistral:latest", main_function: str = "main",
-                 keep_history: int = 10):
+                 llm_model: str = "gpt-oss:120b", main_function: str = "main",
+                 keep_history: int = 10, ollama_url: str = None):
         """
         Initialize the BabyNaptime vulnerability analyzer.
         
         Args:
             code_file: Path to the source code file to analyze
             max_iterations: Maximum number of analysis iterations (default: 100)
-            llm_model: LLM model to use for analysis (default: mistral:latest)
+            llm_model: LLM model to use for analysis (default: gpt-oss:120b)
             main_function: Entry function to begin analysis (default: main)
+            keep_history: Number of conversation history items to keep
+            ollama_url: Optional Ollama server URL
         """
         self.code_file = code_file
         self.is_binary = False
@@ -46,21 +49,21 @@ class BabyNaptime:
         self.llm_model = llm_model
         self.keep_history = keep_history
         self.main_function = main_function
-        self.code_browser = CodeBrowser()
+        self.ollama_url = ollama_url
+        self.code_browser = CodeBrowser(ollama_url=ollama_url)
         
         if not os.path.exists(code_file):
             raise FileNotFoundError(f"Source file not found: {code_file}")
             
-        # self.file_contents = open(self.code_file, 'r').read()
         if not self.is_binary_file(code_file):
             logger.info(f"Reading source file: {code_file}")
             self.file_contents = open(self.code_file, 'r').read()
             self.is_binary = False
         else:
             logger.warning(f"Skipping text read for binary file: {code_file}")
-            self.file_contents = "the path of binary file is"+self.code_file
+            self.file_contents = "the path of binary file is" + self.code_file
             self.is_binary = True
-
+            
     def is_binary_file(self, file_path):
         """Check if the given file is a binary file by checking for null bytes."""
         try:
@@ -80,13 +83,19 @@ class BabyNaptime:
                 self.main_function
             )['source']
         else:
-            function_body = "the path of binary file is"+self.code_file
+            function_body = "the path of binary file is" + self.code_file
         
-        self.agent = Agent(self.code_file, function_body, self.is_binary,llm_model=self.llm_model, keep_history=self.keep_history)
+        self.agent = Agent(
+            self.code_file, 
+            function_body, 
+            self.is_binary,
+            llm_model=self.llm_model, 
+            keep_history=self.keep_history,
+            ollama_url=self.ollama_url
+        )
         logger.info(f"{Fore.WHITE}Starting code analysis...{Style.RESET_ALL}")
         self.agent.run()
         
-
 def main():
     print_banner()
     
@@ -117,8 +126,8 @@ def main():
     parser.add_argument(
         "--llm-model", "-l",
         help="LLM model to use for analysis",
-        default="mistral:latest",
-        choices=["mistral:latest"]
+        default="gpt-oss:120b",
+        choices=["gpt-oss:120b"]
     )
     
     parser.add_argument(
@@ -126,43 +135,54 @@ def main():
         help="Entry function to begin analysis",
         default="main"
     )
-
+    
     parser.add_argument(
         "--keep-history", "-k", 
         type=int,
         help="Number of conversation history items to keep in context",
         default=14
     )
-
+    
+    parser.add_argument(
+        "--ollama-url", "-u",
+        help="Ollama server URL (e.g., https://ollama:11434)",
+        default=None
+    )
+    
     args = parser.parse_args()
-
+    
     # Validate keep_history is > 10
     if args.keep_history <= 10:
         logger.error("Keep history must be greater than 10")
         return 1
-
+        
     # Check if code file exists
     if not os.path.exists(args.code_file):
         logger.error(f"File not found: {args.code_file}")
         return 1
-
+        
     # Check if code directory exists
     if not os.path.exists(args.code_directory):
         logger.error(f"Code directory not found: {args.code_directory}")
         return 1
-
+        
     # Check if code directory is actually a directory
     if not os.path.isdir(args.code_directory):
         logger.error(f"Specified path is not a directory: {args.code_directory}")
         return 1
-
+    
+    # Log Ollama URL if provided
+    if args.ollama_url:
+        logger.info(f"{Fore.CYAN}Using Ollama server at: {args.ollama_url}")
+    
     analyzer = BabyNaptime(
-            code_file=args.code_file,
-            max_iterations=args.max_iterations,
-            llm_model=args.llm_model,
-            main_function=args.main_function,
-            keep_history=args.keep_history
-        )
+        code_file=args.code_file,
+        max_iterations=args.max_iterations,
+        llm_model=args.llm_model,
+        main_function=args.main_function,
+        keep_history=args.keep_history,
+        ollama_url=args.ollama_url
+    )
     analyzer.run()
 
 if __name__ == "__main__":

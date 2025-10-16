@@ -8,6 +8,7 @@ from logger import logger
 from colorama import Fore, Style, init
 from typing import Dict, Optional, Any
 from radare2 import R2
+
 class Caller:
     """
     A class that handles tool execution and command routing.
@@ -23,19 +24,23 @@ class Caller:
         debugger (Debugger): Instance of debugging tool
     """
 
-    def __init__(self, file: str, llm_model: str = "o3-mini") -> None:
+    def __init__(self, file: str, llm_model: str = "o3-mini", ollama_url: str = None) -> None:
         """
         Initialize the Caller with required tools.
 
         Args:
             file (str): Path to source file to analyze
             llm_model (str, optional): Name of LLM model to use. Defaults to "o3-mini"
+            ollama_url (str, optional): Ollama server URL
         """
         self.file = file
-        self.code_browser = CodeBrowser()
-        self.script_runner = ScriptRunner(llm_model)
+        self.llm_model = llm_model
+        self.ollama_url = ollama_url
+        self.code_browser = CodeBrowser(ollama_url=ollama_url)
+        self.script_runner = ScriptRunner(llm_model, ollama_url=ollama_url)
         self.debugger = Debugger()
         self.r2 = R2()
+        
     def call_tool(self, tool_call_command: str) -> Any:
         """
         Execute a tool command and return its output.
@@ -67,7 +72,7 @@ class Caller:
 
         def r2(filename: str, commands: str|list[str], output_format = 'text') -> str:
             """Execute radare2 with specified analysis."""
-            return self.r2.execute(filename,commands,output_format)
+            return self.r2.execute(filename, commands, output_format)
         
         def run_script(script_code: str) -> str:
             """Execute a script against target file."""
@@ -94,7 +99,7 @@ class Caller:
             "run_script": run_script,
             "exploit_successful": exploit_successful,
             "bash_shell": bash_shell,
-            "radare2":r2
+            "radare2": r2
         }
 
         # Execute command in controlled environment

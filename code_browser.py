@@ -6,10 +6,15 @@ from logger import logger
 from colorama import Fore, Style
 
 class CodeBrowser:
-    def __init__(self):
-        """Initialize CodeBrowser."""
+    def __init__(self, ollama_url: str = None):
+        """Initialize CodeBrowser.
+        
+        Args:
+            ollama_url: Optional Ollama server URL
+        """
         self.index = Index.create()
-        self.llm = LLM()
+        self.llm = LLM(ollama_url=ollama_url)
+        self.ollama_url = ollama_url
 
     def get_class_body(self, filename: str, class_name: str) -> Dict:
         """
@@ -33,10 +38,15 @@ class CodeBrowser:
         # Find the target class
         class_node = None
         for node in tu.cursor.walk_preorder():
-            if (node.kind == CursorKind.CLASS_DECL and 
-                node.spelling == class_name):
-                class_node = node
-                break
+            try:
+                if (node.kind == CursorKind.CLASS_DECL and 
+                    node.spelling == class_name):
+                    class_node = node
+                    break
+            except ValueError as e:
+                # Skip nodes with unknown cursor kinds
+                logger.debug(f"Skipping node with unknown kind: {e}")
+                continue
 
         if not class_node:
             raise ValueError(f"Class '{class_name}' not found in {filename}")
@@ -99,17 +109,30 @@ class CodeBrowser:
             }
 
         # Parse the source file
-        tu = self.index.parse(filename)
-        if not tu:
-            raise ValueError(f"Failed to parse {filename}")
+        try:
+            tu = self.index.parse(filename)
+            if not tu:
+                raise ValueError(f"Failed to parse {filename}")
+        except Exception as e:
+            logger.warning(f"Clang parsing failed: {e}, using fallback method")
+            return self._fallback_function_extraction(filename, function_name)
 
         # Find the target function
         function_node = None
-        for node in tu.cursor.walk_preorder():
-            if ((node.kind == CursorKind.FUNCTION_DECL or node.kind == CursorKind.CXX_METHOD) and 
-                    node.spelling == function_name):
-                function_node = node
-                break
+        try:
+            for node in tu.cursor.walk_preorder():
+                try:
+                    if ((node.kind == CursorKind.FUNCTION_DECL or node.kind == CursorKind.CXX_METHOD) and 
+                            node.spelling == function_name):
+                        function_node = node
+                        break
+                except ValueError as e:
+                    # Skip nodes with unknown cursor kinds
+                    logger.debug(f"Skipping node with unknown kind: {e}")
+                    continue
+        except Exception as e:
+            logger.warning(f"Error traversing AST: {e}, using fallback method")
+            return self._fallback_function_extraction(filename, function_name)
 
         if not function_node:
             try:
@@ -143,6 +166,79 @@ class CodeBrowser:
             'lines': [line.strip() for line in function_lines if line.strip()]
         }
 
+    def _fallback_function_extraction(self, filename: str, function_name: str) -> Dict:
+        """
+        Fallback method to extract function using simple text parsing.
+        This is used when clang parsing fails.
+        
+        Args:
+            filename: Path to the source file
+            function_name: Name of function to extract
+            
+        Returns:
+            Dict containing function details
+        """
+        logger.info(f"{Fore.YELLOW}Using fallback text-based function extraction")
+        
+        with open(filename, 'r') as f:
+            file_lines = f.readlines()
+        
+        # Find function declaration
+        function_start = -1
+        for i, line in enumerate(file_lines):
+            # Look for function name followed by opening parenthesis
+            if function_name in line and '(' in line:
+                # Check if it looks like a function declaration
+                # (not a call, not in a comment)
+                stripped = line.strip()
+                if (not stripped.startswith('//') and 
+                    not stripped.startswith('*') and
+                    not stripped.startswith('/*')):
+                    function_start = i
+                    break
+        
+        if function_start == -1:
+            logger.error(f"Could not find function '{function_name}' in {filename}")
+            raise ValueError(f"Function '{function_name}' not found in {filename}")
+        
+        # Find the opening brace
+        brace_line = function_start
+        brace_count = 0
+        found_opening_brace = False
+        function_end = len(file_lines)
+        
+        for i in range(function_start, len(file_lines)):
+            for char in file_lines[i]:
+                if char == '{':
+                    if not found_opening_brace:
+                        found_opening_brace = True
+                        brace_line = i
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if found_opening_brace and brace_count == 0:
+                        # Found the closing brace
+                        function_end = i + 1
+                        break
+            if found_opening_brace and brace_count == 0:
+                break
+        
+        # Extract function lines with line numbers
+        function_lines = file_lines[function_start:function_end]
+        numbered_lines = [
+            f"{i+function_start+1}: {line.rstrip()}"
+            for i, line in enumerate(function_lines)
+        ]
+
+        # Match original format
+        return {
+            'filename': filename,
+            'name': function_name,
+            'type': 'function',
+            'source': '\n'.join(numbered_lines),
+            'lines': [line.strip() for line in function_lines if line.strip()]
+        }
+
     def code_browser_source(self, file: str, name: str) -> str:
         """
         Analyze a function from a specific C source file.
@@ -159,5 +255,3 @@ class CodeBrowser:
             return function_details['source']
         except (ValueError, FileNotFoundError) as e:
             return str(e)
-
-    
