@@ -1,3 +1,8 @@
+# About the fork:
+This is a (Work in progress) fork of the Baby Naptime project, intending to allow local ollama agents, as well as the openAI api and possibly claude, all configurable.
+
+Stay posted.
+
 <p align="center">
   <img src="demo/logo.png" width="500">
 </p>
