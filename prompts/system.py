@@ -52,14 +52,6 @@ SYSTEM_PROMPT = """
         5. Successful Exploit.
         Description: If you have found a successful exploit and crashed the program or gained root access, call exploit_successful(). You cannot return this unless you have actually run the exploit against the binary and observed the crash or root access.
 
-        6.Radare2
-        Description: Provides deep static/dynamic analysis of binary files, supporting disassembly, memory inspection, breakpoint debugging, and vulnerability discovery. Directly execute radare2 commands for flexible analysis.
-        Usage: radare2(filename: str, commands: str, output_format = 'text')
-        - filename: Path to the binary file to analysize
-        - commands: Radare2 command sequence to execute
-        - output_format: Output format is always text
-
-
         INSTRUCTIONS
         - For every output, first describe where we are, what have we done till now, what data have we seen. Then whatever tool you are going to call, write it down in the message. Only suggest one command per output, operations are atomic, we can't run two commands at once.
 

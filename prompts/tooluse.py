@@ -35,13 +35,6 @@ TOOLUSE_PROMPT = """
         5. Successful Exploit.
         Description: If you have found a successful exploit and crashed the program or gained root access, call exploit_successful()
 
-        6.Radare2
-        Description: Provides deep static/dynamic analysis of binary files, supporting disassembly, memory inspection, breakpoint debugging, and vulnerability discovery. Directly execute radare2 commands for flexible analysis.
-        Usage: radare2(filename: str, commands: str, output_format = 'text')
-        - filename: Path to the binary file to analysize
-        - commands: Radare2 command sequence to execute
-        - output_format: Output format is always text
-
         The response below might talk about using some tool, extract the command only with its variables. Only return the command, nothing else. Make sure parameters are passed correctly. Sometimes you write function(param: value), thats not correct way to pass params, just pass the value. Do better.
 
         ###

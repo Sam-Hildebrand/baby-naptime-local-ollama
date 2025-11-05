@@ -10,15 +10,17 @@ class Summarizer:
     and findings.
     """
     
-    def __init__(self, llm_model: str = "o3-mini", ollama_url: str = None) -> None:
+    def __init__(self, llm_model: str = "o3-mini", ollama_url: str = None, gemini: bool = False, api_key: str = None) -> None:
         """
         Initialize the Summarizer with a specified LLM model.
         
         Args:
             llm_model (str): The name of the LLM model to use. Defaults to "o3-mini".
             ollama_url (str, optional): Ollama server URL
+            gemini (bool, optional): Whether to use Gemini API. Defaults to False.
+            api_key (str, optional): Gemini API key. Defaults to None.
         """
-        self.llm = LLM(llm_model, ollama_url=ollama_url)
+        self.llm = LLM(llm_model, ollama_url=ollama_url, gemini=gemini, api_key=api_key)
         self.ollama_url = ollama_url
         
     def summarize_conversation(self, conversation: List[Dict[str, str]]) -> str:

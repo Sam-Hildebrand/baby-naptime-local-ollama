@@ -7,7 +7,6 @@ from utils import sanitize_command
 from logger import logger
 from colorama import Fore, Style, init
 from typing import Dict, Optional, Any
-from radare2 import R2
 
 class Caller:
     """
@@ -24,7 +23,7 @@ class Caller:
         debugger (Debugger): Instance of debugging tool
     """
 
-    def __init__(self, file: str, llm_model: str = "o3-mini", ollama_url: str = None) -> None:
+    def __init__(self, file: str, llm_model: str = "o3-mini", ollama_url: str = None, gemini: bool = False, api_key: str = None) -> None:
         """
         Initialize the Caller with required tools.
 
@@ -32,14 +31,17 @@ class Caller:
             file (str): Path to source file to analyze
             llm_model (str, optional): Name of LLM model to use. Defaults to "o3-mini"
             ollama_url (str, optional): Ollama server URL
+            gemini (bool, optional): Whether to use Gemini API. Defaults to False.
+            api_key (str, optional): Gemini API key. Defaults to None.
         """
         self.file = file
         self.llm_model = llm_model
         self.ollama_url = ollama_url
-        self.code_browser = CodeBrowser(ollama_url=ollama_url)
-        self.script_runner = ScriptRunner(llm_model, ollama_url=ollama_url)
+        self.gemini = gemini
+        self.api_key = api_key
+        self.code_browser = CodeBrowser(ollama_url=ollama_url, gemini=gemini, api_key=api_key)
+        self.script_runner = ScriptRunner(llm_model, ollama_url=ollama_url, gemini=gemini, api_key=api_key)
         self.debugger = Debugger()
-        self.r2 = R2()
         
     def call_tool(self, tool_call_command: str) -> Any:
         """
@@ -69,10 +71,6 @@ class Caller:
                     input_vars: Optional[Dict] = None) -> str:
             """Execute debugger at specified location."""
             return self.debugger.debug(filename, line_number, exprs, input_vars)
-
-        def r2(filename: str, commands: str|list[str], output_format = 'text') -> str:
-            """Execute radare2 with specified analysis."""
-            return self.r2.execute(filename, commands, output_format)
         
         def run_script(script_code: str) -> str:
             """Execute a script against target file."""
@@ -99,7 +97,6 @@ class Caller:
             "run_script": run_script,
             "exploit_successful": exploit_successful,
             "bash_shell": bash_shell,
-            "radare2": r2
         }
 
         # Execute command in controlled environment

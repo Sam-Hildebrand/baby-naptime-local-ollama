@@ -11,7 +11,7 @@ class Reporter:
     to validate discovered vulnerabilities and generate detailed reports.
     """
     
-    def __init__(self, filename, llm_model: str = "o3-mini", ollama_url: str = None):
+    def __init__(self, filename, llm_model: str = "o3-mini", ollama_url: str = None, gemini: bool = False, api_key: str = None):
         """
         Initialize the reporter.
         
@@ -19,8 +19,10 @@ class Reporter:
             filename: Filename of the file that was tested
             llm_model (str): LLM model to use
             ollama_url (str, optional): Ollama server URL
+            gemini (bool, optional): Whether to use Gemini API. Defaults to False.
+            api_key (str, optional): Gemini API key. Defaults to None.
         """
-        self.llm = LLM(llm_model, ollama_url=ollama_url)
+        self.llm = LLM(llm_model, ollama_url=ollama_url, gemini=gemini, api_key=api_key)
         self.reports = []
         self.filename = filename
         self.ollama_url = ollama_url

@@ -1,7 +1,8 @@
-# llm.py
 import ollama
 import google.generativeai as genai
 import os
+import time
+from google.api_core import exceptions
 
 class LLM:
     def __init__(self, model: str = "gpt-oss:120b", ollama_url: str = None, gemini: bool = False, api_key: str = None):
@@ -25,6 +26,7 @@ class LLM:
             
             genai.configure(api_key=api_key)
             self.client = genai.GenerativeModel(self.model)
+            self.last_gemini_call = 0
         else:
             print("Using Ollama API")
             # reasoning not relevant for Ollama, so always False
@@ -35,6 +37,23 @@ class LLM:
                 self.client = ollama.Client(host=ollama_url)
             else:
                 self.client = ollama.Client()  # Uses default localhost:11434
+
+    def _gemini_request_wrapper(self, request_func, *args, **kwargs):
+        """Wrapper for Gemini requests to handle rate limiting and retries."""
+        # Rate limiting: 10 requests per minute (6 seconds between calls)
+        time_since_last_call = time.time() - self.last_gemini_call
+        if time_since_last_call < 6:
+            time.sleep(6 - time_since_last_call)
+        
+        self.last_gemini_call = time.time()
+        
+        try:
+            return request_func(*args, **kwargs)
+        except exceptions.ResourceExhausted as e:
+            print("Rate limit exceeded (429). Waiting for 60 seconds before retrying...")
+            time.sleep(60)
+            self.last_gemini_call = time.time()
+            return request_func(*args, **kwargs)
 
     def action(self, messages, temperature: float = 0.0, **kwargs):
         """
@@ -47,12 +66,18 @@ class LLM:
                 role = "user" if msg["role"] == "user" else "model"
                 gemini_messages.append({"role": role, "parts": [msg["content"]]})
             
-            response = self.client.generate_content(
+            response = self._gemini_request_wrapper(
+                self.client.generate_content,
                 gemini_messages,
                 generation_config=genai.types.GenerationConfig(
                     temperature=temperature
                 )
             )
+            if not response.candidates or response.candidates[0].finish_reason == 'SAFETY':
+                print(f"Warning: Gemini response was blocked. Finish reason: {response.candidates[0].finish_reason if response.candidates else 'N/A'}")
+                if response.candidates:
+                    print(f"Safety ratings: {response.candidates[0].safety_ratings}")
+                return ""
             return response.text
         else:
             try:
@@ -63,8 +88,7 @@ class LLM:
                         "temperature": temperature,
                         "num_predict": -1  # Allow unlimited tokens
                     },
-                    stream=False,  # Explicitly disable streaming
-                    tools=None  # Explicitly disable tool calling
+                    stream=False  # Explicitly disable streaming
                 )
                 return response["message"]["content"]
             except Exception as e:
@@ -73,8 +97,7 @@ class LLM:
                 try:
                     response = self.client.chat(
                         model=self.model,
-                        messages=messages,
-                        tools=None  # Try with just disabling tools
+                        messages=messages
                     )
                     return response["message"]["content"]
                 except Exception as e2:
@@ -91,12 +114,18 @@ class LLM:
         Send a simple prompt to the configured LLM.
         """
         if self.use_gemini:
-            response = self.client.generate_content(
+            response = self._gemini_request_wrapper(
+                self.client.generate_content,
                 prompt,
                 generation_config=genai.types.GenerationConfig(
                     temperature=temperature
                 )
             )
+            if not response.candidates or response.candidates[0].finish_reason == 'SAFETY':
+                print(f"Warning: Gemini response was blocked. Finish reason: {response.candidates[0].finish_reason if response.candidates else 'N/A'}")
+                if response.candidates:
+                    print(f"Safety ratings: {response.candidates[0].safety_ratings}")
+                return ""
             return response.text
         else:
             try:

@@ -49,6 +49,8 @@ class Agent:
         self.llm_model = llm_model
         self.ollama_url = ollama_url
         self.is_binary = is_binary
+        self.gemini = gemini
+        self.api_key = api_key
         
         if self.is_binary:
             self.binary_path = self.file
@@ -127,7 +129,7 @@ class Agent:
                 first_messages = self.history[:keep_beginning]
                 last_messages = self.history[-keep_ending:]
                 middle_messages = self.history[keep_beginning:-keep_ending]
-                summary = Summarizer(self.llm_model, ollama_url=self.ollama_url).summarize_conversation(middle_messages)
+                summary = Summarizer(self.llm_model, ollama_url=self.ollama_url, gemini=self.gemini, api_key=self.api_key).summarize_conversation(middle_messages)
                 self.history = first_messages + [
                     {"role": "assistant", "content": f"[SUMMARY OF PREVIOUS CONVERSATION: {summary}]"}
                 ] + last_messages
@@ -148,9 +150,9 @@ class Agent:
             tool_command = self.tool_use(response)
             if "exploit_successful" in tool_command:
                 logger.info(f"{Fore.GREEN}Exploit successful, generating report")
-                report = Reporter(self.file, self.llm_model, ollama_url=self.ollama_url)
+                report = Reporter(self.file, self.llm_model, ollama_url=self.ollama_url, gemini=self.gemini, api_key=self.api_key)
                 report.generate_summary_report(self.history)
                 raise SystemExit(0)
             
-            tool_response = Caller(file=self.file, llm_model=self.llm_model, ollama_url=self.ollama_url).call_tool(tool_command)
+            tool_response = Caller(file=self.file, llm_model=self.llm_model, ollama_url=self.ollama_url, gemini=self.gemini, api_key=self.api_key).call_tool(tool_command)
             self.history.append({"role": "user", "content": str(tool_response)})

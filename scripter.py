@@ -5,16 +5,20 @@ from llm import LLM
 from typing import Any, Optional
 
 class ScriptRunner:
-    def __init__(self, llm_model: str = "gpt-oss:120b", ollama_url: str = None):
+    def __init__(self, llm_model: str = "gpt-oss:120b", ollama_url: str = None, gemini: bool = False, api_key: str = None):
         """
         Initialize script runner.
         
         Args:
             llm_model (str): LLM model to use
             ollama_url (str, optional): Ollama server URL
+            gemini (bool, optional): Whether to use Gemini API. Defaults to False.
+            api_key (str, optional): Gemini API key. Defaults to None.
         """
         self.llm_model = llm_model
         self.ollama_url = ollama_url
+        self.gemini = gemini
+        self.api_key = api_key
         self.temp_dir = "temp"
         
     def run_script(self, file_path: str, script_code: str, timeout: Optional[int] = 30) -> Any:
@@ -43,7 +47,7 @@ Code:
 {script_code}
 """
         
-        script_code = LLM(self.llm_model, ollama_url=self.ollama_url).prompt(prompt, reasoning="low")
+        script_code = LLM(self.llm_model, ollama_url=self.ollama_url, gemini=self.gemini, api_key=self.api_key).prompt(prompt, reasoning="low")
         
         # Create temporary script file
         fd, script_path = tempfile.mkstemp(suffix='.py', dir=self.temp_dir)
