@@ -30,7 +30,7 @@ class Agent:
     """
     def __init__(self, file: str, initial_data: str, is_binary: bool, 
                  llm_model: str = "mistral:latest", keep_history: int = 10,
-                 ollama_url: str = None):
+                 ollama_url: str = None, gemini: bool = False, api_key: str = None):
         """
         Initialize the agent.
         
@@ -41,8 +41,10 @@ class Agent:
             llm_model: Name of LLM model to use (default: mistral:latest)
             keep_history: Number of conversation items to keep in context (default: 10)
             ollama_url: Optional Ollama server URL
+            gemini: Whether to use the Gemini API
+            api_key: The Gemini API key
         """
-        self.llm = LLM(llm_model, ollama_url=ollama_url)
+        self.llm = LLM(llm_model, ollama_url=ollama_url, gemini=gemini, api_key=api_key)
         self.file = file
         self.llm_model = llm_model
         self.ollama_url = ollama_url

@@ -2,3 +2,5 @@ colorama==0.4.6
 libclang==18.1.1
 openai==1.65.2
 tiktoken==0.9.0
+google-generativeai==0.5.4
+ollama==0.2.1

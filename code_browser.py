@@ -6,14 +6,16 @@ from logger import logger
 from colorama import Fore, Style
 
 class CodeBrowser:
-    def __init__(self, ollama_url: str = None):
+    def __init__(self, ollama_url: str = None, gemini: bool = False, api_key: str = None):
         """Initialize CodeBrowser.
         
         Args:
             ollama_url: Optional Ollama server URL
+            gemini: Whether to use the Gemini API
+            api_key: The Gemini API key
         """
         self.index = Index.create()
-        self.llm = LLM(ollama_url=ollama_url)
+        self.llm = LLM(ollama_url=ollama_url, gemini=gemini, api_key=api_key)
         self.ollama_url = ollama_url
 
     def get_class_body(self, filename: str, class_name: str) -> Dict:

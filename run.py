@@ -31,7 +31,7 @@ def print_banner():
 class BabyNaptime:
     def __init__(self, code_file: str, max_iterations: int = 100, 
                  llm_model: str = "gpt-oss:120b", main_function: str = "main",
-                 keep_history: int = 10, ollama_url: str = None):
+                 keep_history: int = 10, ollama_url: str = None, gemini: bool = False, api_key: str = None):
         """
         Initialize the BabyNaptime vulnerability analyzer.
         
@@ -42,6 +42,8 @@ class BabyNaptime:
             main_function: Entry function to begin analysis (default: main)
             keep_history: Number of conversation history items to keep
             ollama_url: Optional Ollama server URL
+            gemini: Whether to use the Gemini API
+            api_key: The Gemini API key
         """
         self.code_file = code_file
         self.is_binary = False
@@ -50,7 +52,9 @@ class BabyNaptime:
         self.keep_history = keep_history
         self.main_function = main_function
         self.ollama_url = ollama_url
-        self.code_browser = CodeBrowser(ollama_url=ollama_url)
+        self.gemini = gemini
+        self.api_key = api_key
+        self.code_browser = CodeBrowser(ollama_url=ollama_url, gemini=gemini, api_key=api_key)
         
         if not os.path.exists(code_file):
             raise FileNotFoundError(f"Source file not found: {code_file}")
@@ -91,7 +95,9 @@ class BabyNaptime:
             self.is_binary,
             llm_model=self.llm_model, 
             keep_history=self.keep_history,
-            ollama_url=self.ollama_url
+            ollama_url=self.ollama_url,
+            gemini=self.gemini,
+            api_key=self.api_key
         )
         logger.info(f"{Fore.WHITE}Starting code analysis...{Style.RESET_ALL}")
         self.agent.run()
@@ -149,6 +155,12 @@ def main():
         default=None
     )
     
+    parser.add_argument(
+        "--gemini",
+        help="Use Gemini API instead of Ollama",
+        action="store_true"
+    )
+    
     args = parser.parse_args()
     
     # Validate keep_history is > 10
@@ -174,14 +186,40 @@ def main():
     # Log Ollama URL if provided
     if args.ollama_url:
         logger.info(f"{Fore.CYAN}Using Ollama server at: {args.ollama_url}")
-    
+
+    api_key = None
+    if args.gemini:
+        api_key_file = ".gemini_api_key"
+        if os.path.exists(api_key_file):
+            with open(api_key_file, "r") as f:
+                api_key = f.read().strip()
+        
+        if not api_key:
+            api_key = os.environ.get("GEMINI_API_KEY")
+
+        if not api_key:
+            print("GEMINI_API_KEY environment variable not found.")
+            print("You can get an API key from Google AI Studio: https://aistudio.google.com/app/apikey")
+            try:
+                import getpass
+                api_key = getpass.getpass("Please enter your Gemini API key: ")
+            except ImportError:
+                print("Warning: getpass module not available for secure input.")
+                api_key = input("Please enter your Gemini API key: ")
+            
+            with open(api_key_file, "w") as f:
+                f.write(api_key)
+            print(f"API key saved to {api_key_file} for future use.")
+
     analyzer = BabyNaptime(
         code_file=args.code_file,
         max_iterations=args.max_iterations,
         llm_model=args.llm_model,
         main_function=args.main_function,
         keep_history=args.keep_history,
-        ollama_url=args.ollama_url
+        ollama_url=args.ollama_url,
+        gemini=args.gemini,
+        api_key=api_key
     )
     analyzer.run()
 
