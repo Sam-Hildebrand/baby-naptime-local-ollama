@@ -127,7 +127,7 @@ def main():
         "--llm-model", "-l",
         help="LLM model to use for analysis",
         default="gpt-oss:120b",
-        choices=["gpt-oss:120b"]
+        choices=["gpt-oss:20b", "gpt-oss:120b"]
     )
     
     parser.add_argument(

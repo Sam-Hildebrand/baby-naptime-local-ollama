@@ -5,7 +5,7 @@ from llm import LLM
 from typing import Any, Optional
 
 class ScriptRunner:
-    def __init__(self, llm_model: str = "o3-mini", ollama_url: str = None):
+    def __init__(self, llm_model: str = "gpt-oss:120b", ollama_url: str = None):
         """
         Initialize script runner.
         
